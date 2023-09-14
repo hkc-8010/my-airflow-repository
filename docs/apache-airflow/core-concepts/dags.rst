@@ -20,7 +20,7 @@
 DAGs
 ====
 
-A *DAG* (Directed Acyclic Graphics) is the core concept of Airflow, collecting :doc:`tasks` together, organized with dependencies and relationships to say how they should run.
+A *DAG* (Directed Acyclic Graph) is the core concept of Airflow, collecting :doc:`tasks` together, organized with dependencies and relationships to say how they should run.
 
 Here's a basic example DAG:
 
