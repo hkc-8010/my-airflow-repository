@@ -86,7 +86,7 @@ from airflow.models.asset import (
     PartitionedAssetKeyLog,
     TaskInletAssetReference,
     TaskOutletAssetReference,
-    _register_queued_asset_event,
+    register_queued_asset_event,
 )
 from airflow.models.asset_state_store import AssetStateStoreModel
 from airflow.models.backfill import Backfill, BackfillDagRun
@@ -3750,7 +3750,7 @@ class SchedulerJobRunner(BaseJobRunner, LoggingMixin):
                 # Each row is registered in its own savepoint so one poison row rolls back alone
                 # instead of discarding the whole batch; the outer transaction commits once at the end.
                 with session.begin_nested():
-                    _register_queued_asset_event(row, session=session)
+                    register_queued_asset_event(row, session=session)
                 processed += 1
             except Exception:
                 with session.begin_nested():

@@ -5817,11 +5817,13 @@ class TestSchedulerJob:
         scheduler_job = Job()
         self.job_runner = SchedulerJobRunner(job=scheduler_job, executors=[self.null_exec])
 
-        self.job_runner._drain_asset_event_queue(session=session)
+        with mock.patch("airflow.models.asset.log") as mock_log:
+            self.job_runner._drain_asset_event_queue(session=session)
 
         assert session.scalars(select(AssetEventQueue)).all() == []
         # Nothing was registered because the task instance could not be resolved.
         assert session.scalars(select(AssetEvent)).all() == []
+        mock_log.info.assert_called_once()
 
     @pytest.mark.need_serialized_dag
     def test_drain_asset_event_queue_empty_noop(self, session, dag_maker):

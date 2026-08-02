@@ -17,6 +17,7 @@
 # under the License.
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
@@ -52,6 +53,8 @@ if TYPE_CHECKING:
     from airflow.models.dag import DagModel
     from airflow.models.trigger import Trigger
     from airflow.serialization.definitions.assets import SerializedAsset, SerializedAssetAlias
+
+log = logging.getLogger(__name__)
 
 
 def fetch_active_assets_by_name(names: Iterable[str], session: Session) -> dict[str, SerializedAsset]:
@@ -802,7 +805,7 @@ class AssetEventQueue(Base):
     :meth:`~airflow.models.taskinstance.TaskInstance.register_asset_changes_in_db` to create
     the ``AssetEvent`` and ``AssetDagRunQueue`` rows, and deletes the queue row once that write
     commits. The in-process runner behind ``dag.test`` has no scheduler, so it drains the row
-    itself via :func:`register_pending_asset_events` right after the task finishes.
+    itself via :func:`register_queued_asset_events_for_dag_test` right after the task finishes.
 
     ``ti_id`` is the primary key: at most one pending registration exists per task
     instance, and the row is cascade-deleted if the task instance is removed.
@@ -837,16 +840,16 @@ class AssetEventQueue(Base):
         return f"AssetEventQueue(ti_id={self.ti_id!r}, attempts={self.attempts!r})"
 
 
-def _register_queued_asset_event(row: AssetEventQueue, *, session: Session) -> None:
+def register_queued_asset_event(row: AssetEventQueue, *, session: Session) -> None:
     """
     Register the asset events captured in one :class:`AssetEventQueue` row, then delete it.
 
     Resolves the live task instance by natural key (``dag_id``/``run_id``/``task_id``/``map_index``)
     rather than the surrogate ``ti_id``: clearing a task reassigns its id, so a lookup by the
     enqueued id would miss the row on any backend that does not cascade the id change. If the task
-    instance no longer exists there is nothing to register and the row is simply dropped. The caller
-    owns the surrounding transaction (the scheduler wraps each row in a savepoint; the in-process
-    runner commits the session).
+    instance no longer exists there is nothing to register and the row is simply dropped. The caller owns
+    the surrounding transaction (the scheduler wraps each row in a savepoint; the in-process runner
+    commits the session).
     """
     from airflow.api_fastapi.execution_api.datamodels.asset import AssetProfile
     from airflow.models.taskinstance import TaskInstance
@@ -864,12 +867,14 @@ def _register_queued_asset_event(row: AssetEventQueue, *, session: Session) -> N
     if ti is not None:
         task_outlets = [AssetProfile.model_validate(outlet) for outlet in payload["task_outlets"]]
         TaskInstance.register_asset_changes_in_db(ti, task_outlets, payload["outlet_events"], session=session)
+    else:
+        log.info("Dropping queued asset-event row for missing task instance: %s", ti_key)
     session.delete(row)
 
 
-def register_pending_asset_events(*, ti_ids: Iterable[UUID], session: Session) -> None:
+def register_queued_asset_events_for_dag_test(*, ti_ids: Iterable[UUID], session: Session) -> None:
     """
-    Register queued asset events for the given task instances in line and commit.
+    Register queued asset events in line for `dag.test`, then commit.
 
     The execution API records asset events on task success as durable
     :class:`AssetEventQueue` markers that the scheduler drains. The in-process task runner
@@ -880,7 +885,7 @@ def register_pending_asset_events(*, ti_ids: Iterable[UUID], session: Session) -
     """
     rows = session.scalars(select(AssetEventQueue).where(AssetEventQueue.ti_id.in_(ti_ids))).all()
     for row in rows:
-        _register_queued_asset_event(row, session=session)
+        register_queued_asset_event(row, session=session)
     session.commit()
 
 

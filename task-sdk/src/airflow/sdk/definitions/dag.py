@@ -1576,10 +1576,10 @@ def _run_task(
     # scheduler, so register the events in line here (the same way the triggerer is run in
     # process above) rather than leaving them stuck in the queue.
     if ti.state == TaskInstanceState.SUCCESS:
-        from airflow.models.asset import register_pending_asset_events
+        from airflow.models.asset import register_queued_asset_events_for_dag_test
 
         with create_session() as session:
-            register_pending_asset_events(ti_ids=[ti.id], session=session)
+            register_queued_asset_events_for_dag_test(ti_ids=[ti.id], session=session)
 
     log.info("[DAG TEST] end task task_id=%s map_index=%s", ti.task_id, ti.map_index)
     return taskrun_result

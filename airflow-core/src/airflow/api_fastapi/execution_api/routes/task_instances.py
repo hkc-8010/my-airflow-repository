@@ -660,11 +660,6 @@ def _asset_event_payload(
     return {
         "task_outlets": [outlet.model_dump(mode="json") for outlet in task_outlets],
         "outlet_events": outlet_events,
-        # The scheduler drain resolves the live task instance by this natural key rather than by the
-        # surrogate ``ti_id``. Clearing a task reassigns its uuid7 id, and relying on the foreign
-        # key's ON UPDATE CASCADE to re-point the row only works on Postgres -- SQLite does not
-        # enforce foreign keys in Airflow's production engine -- so a natural-key lookup is what
-        # keeps the pending events reachable on every backend.
         "ti_key": ti_key,
     }
 
