@@ -1638,6 +1638,10 @@ type TIRunContext struct {
 	// DagRun corresponds to the JSON schema field "dag_run".
 	DagRun DagRun `msgpack:"dag_run"`
 
+	// FirstTaskRescheduleStartDate corresponds to the JSON schema field
+	// "first_task_reschedule_start_date".
+	FirstTaskRescheduleStartDate interface{} `msgpack:"first_task_reschedule_start_date,omitempty"`
+
 	// MaxTries corresponds to the JSON schema field "max_tries".
 	MaxTries int `msgpack:"max_tries"`
 
@@ -1882,19 +1886,6 @@ type UpdateHITLDetail struct {
 	Type string `msgpack:"type,omitempty"`
 }
 
-// Variable schema for responses with fields that are needed for Runtime.
-type VariableResponse struct {
-	// Key corresponds to the JSON schema field "key".
-	Key string `msgpack:"key"`
-
-	// Value corresponds to the JSON schema field "value".
-	Value interface{} `msgpack:"value"`
-}
-
-type Warnings []interface{}
-
-type VersionData map[string]interface{}
-
 type ValidateInletsAndOutlets struct {
 	// TIID corresponds to the JSON schema field "ti_id".
 	TIID string `msgpack:"ti_id"`
@@ -1914,6 +1905,15 @@ type VariableKeysResult struct {
 	Type string `msgpack:"type,omitempty"`
 }
 
+// Variable schema for responses with fields that are needed for Runtime.
+type VariableResponse struct {
+	// Key corresponds to the JSON schema field "key".
+	Key string `msgpack:"key"`
+
+	// Value corresponds to the JSON schema field "value".
+	Value interface{} `msgpack:"value"`
+}
+
 type VariableResult struct {
 	// Key corresponds to the JSON schema field "key".
 	Key string `msgpack:"key"`
@@ -1924,6 +1924,10 @@ type VariableResult struct {
 	// Value corresponds to the JSON schema field "value".
 	Value interface{} `msgpack:"value"`
 }
+
+type VersionData map[string]interface{}
+
+type Warnings []interface{}
 
 // One positional stub-task argument pulled from an upstream task's XCom.
 type XComArgBinding struct {
